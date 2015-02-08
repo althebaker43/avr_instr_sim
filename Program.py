@@ -8,8 +8,14 @@ LABEL_REGEX = re.compile('^([0-9abcdef]+)\ <(.+)>:$')
 
 
 def AddInstrRelJump(instr):
-    jumpAddr = (instr & 0x0FFF)
-    return Instructions.RelJump(jumpAddr)
+    offset = (instr & 0x0FFF)
+
+    # Extend sign bit
+    if ((offset & 0x0800) != 0):
+        # Don't ask
+        offset = -(((~(((~0) & (~0xFFF)) | offset))+1)<<1)
+
+    return Instructions.RelJump(offset)
 
 def AddInstrPush(instr):
     register = ((instr & 0x01F0) >> 4)
@@ -30,6 +36,18 @@ def AddInstrAdd(instr):
             sourceRegister
             )
 
+def AddInstrDec(instr):
+    register = ((instr & 0x01F0) >> 4)
+    return Instructions.Decrement(
+            register
+            )
+
+def AddInstrTest(instr):
+    register = (instr & 0x01F)
+    return Instructions.Test(
+            register
+            )
+
 def AddInstrMove(instr):
     destRegister = ((instr & 0x01F0) >> 4)
     sourceRegister = (((instr & 0x0200) >> 5) | (instr & 0x000F))
@@ -38,14 +56,23 @@ def AddInstrMove(instr):
             sourceRegister
             )
 
+def AddInstrBranchEqual(instr):
+    offset = ((instr & 0x03F8) >> 2)
+    return Instructions.BranchEqual(
+            offset
+            )
+
 
 OpCodeInstructionMap = {
-    0x3 : AddInstrAdd,
-    0xB : AddInstrMove,
-    0xC : AddInstrRelJump,
-    0x48 : AddInstrPop,
-    0x49 : AddInstrPush,
-    0x4A : AddInstrReturn
+    0x3 :   AddInstrAdd,
+    0x8 :   AddInstrTest,
+    0xB :   AddInstrMove,
+    0xC :   AddInstrRelJump,
+    0x1E1 : AddInstrBranchEqual,
+    0x48F : AddInstrPop,
+    0x49F : AddInstrPush,
+    0x4A8 : AddInstrReturn,
+    0x4AA : AddInstrDec
     }
 
 
@@ -55,7 +82,9 @@ def GetOpCode(instr):
 
     msNibble = ((instr & 0xF000)>>12)
     if (msNibble == 0x9):
-        opcode = ((msNibble << 3) | ((instr & 0x0E00) >> 9))
+        opcode = ((msNibble << 7) | ((instr & 0x0E00) >> 5) | (instr & 0x000F))
+    elif (msNibble == 0xF):
+        opcode = ((msNibble << 5) | ((instr & 0x0C00) >> 7) | (instr & 0x0007))
     elif (msNibble == 0x0 or msNibble == 0x2):
         opcode = ((msNibble << 2) | ((instr & 0x0C00) >> 10))
     else:

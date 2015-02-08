@@ -1,4 +1,6 @@
 
+STATUS_ZERO = 2
+
 class System:
 
     def __init__(self):
@@ -7,11 +9,18 @@ class System:
         for index in range(32):
             self.registers.append(0)
 
+        self.status = 0
         self.programCounter = 0
-
         self.stack = []
-
         self.isDone = False
+
+
+    def zero(self):
+        return ((self.status & STATUS_ZERO) != 0)
+
+
+    def setZero(self):
+        self.status |= STATUS_ZERO
 
 
     def run(
@@ -21,13 +30,11 @@ class System:
 
         self.isDone = False
 
-        for instr in program.instructions:
+        while (self.isDone == False):
 
+            instr = program.instructions[(self.programCounter/2)]
             if (instr.execute(self) == False):
                 print('Error: execution failed at the following instruction: %s' % instr)
-                break
-
-            if (self.isDone == True):
                 break
 
             self.programCounter += 2

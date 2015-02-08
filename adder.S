@@ -4,7 +4,6 @@
 ;  R17: operand 2
 ; Outputs:
 ;  R18: sum of operands 1 and 2
-
 .global add2
 add2:
     push r16
@@ -15,4 +14,3 @@ add2:
     pop r16
 
     ret
-
